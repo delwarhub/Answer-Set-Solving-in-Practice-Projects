@@ -1,1 +1,1 @@
-# Answer-Set-Solving-in-Practice
+# Answer Set Solving in Practice
