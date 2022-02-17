@@ -1,5 +1,5 @@
 import sys
-from subprocess import run, PIPE, TimeoutExpired 
+from subprocess import run, PIPE, TimeoutExpired
 import os
 import tempfile
 import json
@@ -17,7 +17,7 @@ SOLUTIONS = "solutions/"
 def call_clingo(input_names, timeout):
     cmd = [CLINGO, "--warn=no-atom-undefined", "--warn=no-file-included", "--warn=no-operation-undefined", "--warn=no-variable-unbounded", "--warn=no-global-variable", "--outf=2"] + input_names
     start = time.time()
-    output = run(cmd, stdout=PIPE, stderr=PIPE, timeout=timeout) 
+    output = run(cmd, stdout=PIPE, stderr=PIPE, timeout=timeout)
     end = time.time()
     if output.stderr:
         raise RuntimeError("Clingo: %s" % output.stderr)
@@ -30,7 +30,7 @@ def check_result(output, expected):
         solutions = [w['Value'] for w in output['Call'][len(output['Call'])-1]['Witnesses']]
     return result.startswith(expected), solutions
 
-def test(enc, inst, timeout, expected, opt):
+def test(enc, inst, timeout, expected):
     # check if encoding result is as expected
     try:
         if expected == 'SAT':
@@ -44,13 +44,8 @@ def test(enc, inst, timeout, expected, opt):
     if not ok:
         return False, time
 
-    # succeed if expected UNSAT
-    if expected == 'UNSAT':
-        return True, time
-
     for s in solutions:
         s.sort()
-    solutions.sort()
 
     # check solutions if expected SAT
     if expected == 'SAT':
@@ -61,27 +56,19 @@ def test(enc, inst, timeout, expected, opt):
         for s in ref_solutions:
             s.sort()
         ref_solutions.sort()
+        solutions.sort()
         return solutions == ref_solutions, time
 
     # check optimal solution
     if expected == 'OPT':
-        with tempfile.NamedTemporaryFile(mode="w",prefix="Extended", dir=".") as exts:
-            exts.write("{}\n".format("".join([atom+"." for atom in solutions[-1]])))
-            exts.flush()
-            stdout, dump = call_clingo([REF_ENC, exts.name, INSTANCES+inst],timeout)
-        output = json.loads(stdout)
-        ok, ref_solutions = check_result(output, 'SAT')
-        if not ok:
-            return False, time
-        found_opt = True
-        opt_name = opt.split("(",1)[0]
-        for atom in ref_solutions[0]:
-            if atom.startswith(opt_name):
-                if atom == opt:
-                    found_opt
-                else:
-                    return False, time
-        return found_opt, time
+        inst_sol = inst[:-2]+"json"
+        with open(SOLUTIONS+inst_sol,"r") as infile:
+            output = json.load(infile)
+        ok, ref_solutions = check_result(output, expected)
+        for s in ref_solutions:
+            s.sort()
+        ref_solutions.sort()
+        return solutions[-1] in ref_solutions, time
 
 def main():
     # check input
@@ -93,29 +80,23 @@ def main():
         if not os.path.isfile(f):
             raise IOError("file %s not found!" % f)
 
-    opt = None
-    if expected == 'OPT':
-        if len(sys.argv) < 5:
-            raise RuntimeError("optimum missing")
-        opt = sys.argv[4]
-
     dir = os.listdir(INSTANCES)
     dir.sort()
     success = True
-    
+
     message = ""
     #loop over all instances
-    for inst in dir: 
+    for inst in dir:
         result = 0
-        error = False 
+        error = False
         try:
-            res, time = test(enc, inst, timeout, expected, opt)
+            res, time = test(enc, inst, timeout, expected)
             if not res:
                 success = False
         except Exception as e:
             success = False
             if isinstance(e, TimeoutExpired):
-                result = "timeout\n" 
+                result = "timeout\n"
             else:
                 result = "error\n"
                 error = e
@@ -127,7 +108,7 @@ def main():
         else:
             message += "success" if res else "failure"
             message += " in "+str(1000*time)[:7]+" ms\n"
-    return success, message  
+    return success, message
 
 if __name__ == '__main__':
     try:
