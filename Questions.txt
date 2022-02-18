@@ -1,0 +1,18 @@
+Sudoku :
+- How to put one number in each square?
+- How to check there is no two squares with the same number on the same line/column?
+- How to check there is no two squares with the same number on the same subgrid?
+
+SeekNumber :
+- How to define a path?
+- How to ensure it goes in every square?
+- How to check for turns?
+- How to count the turn for each hint?
+
+Minotaur :
+- How to define Theseus path?
+- How to define the minotaur path?
+- How to make the minotaur faster than Theseus?
+- How to check if the paths are corrects?
+- How to check if the minotaur get to Theseus?
+- How to make sure Theseus path is the fastest?
